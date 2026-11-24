@@ -33,7 +33,9 @@ Goals:
    is post-quantum, or hybrid while the transition lasts.
 3. Enforcement is done by whoever holds the money: a contract, a chain module or a payment
    processor. It is **never done by the agent**. The agent is assumed fooled or stolen.
-4. The same mandate can be enforced on more than one chain through thin profiles (section 7).
+4. One format, one verifier, many enforcers. A mandate names exactly one enforcer, so the same
+   issuer and agent keys get one mandate per chain, each compiled by a thin profile (section 7).
+   This is shown with both running enforcers in `examples/two-chains` of the reference library.
 
 Non-goals: deciding *whether* a payment is wise (that is the agent's and the policy's job),
 identity proofing (we reference a DID, we don't issue one), and replacing AP2 or ERC-7710. This
@@ -186,7 +188,8 @@ OverWindow`, then `TooManyPending` for a payment that would be held. The result 
 |---|---|---|---|
 | **QoreChain** | account-abstraction spending rule (denoms, calls, expiry) + desk contract (limits, payees) | the chain: hybrid account, ML-DSA-87 precompile `0x…0a01` for invoices | running (Invoice Leash V2/V3) |
 | **CosmWasm / ME Hub** | the Leash ID contract (policy, rolling window, approvals, pending cap) | **not yet**: ME Hub accounts are secp256k1. Payee identity is checked live through the x/did Stargate query | running (Leash ID v0.3), PQ part missing |
-| **EVM + ERC-7710** | a caveat enforcer per scope/limit field | off-chain or a precompile. Pure-Solidity ML-DSA verification costs too much gas on chains without one | design only |
+| **EVM (InvoiceDeskV3 outside QoreChain)** | the desk contract (limits, payees, signed invoices) | a precompile if the chain has one. Otherwise the payee's signature is checked off-chain and recorded. Pure-Solidity ML-DSA costs too much gas | local run (anvil, stand-in precompile) |
+| **EVM + ERC-7710** | a caveat enforcer per scope/limit field | as above | design only |
 | **Off-chain (AP2, x402 facilitator)** | the processor | a verifier library, receipts signed by the processor | design only |
 
 On a chain that can't verify ML-DSA itself, the profile must say so plainly. In that case the
@@ -245,8 +248,10 @@ These come from building and attacking the two systems above, not from theory.
    ML-DSA-87 signatures.
 2. **Done (0.1.0), compile step only:** the adapters turn a mandate into Leash ID's `PolicyMsg` or
    InvoiceDesk limits plus the agent's spending rule, and refuse what the target can't enforce.
-   Still to do: install those configs on chain from these repositories, so that one mandate
-   actually runs on both chains.
+   **Done locally:** `examples/two-chains` installs both on private nodes, a single ME Hub node
+   (Leash ID v0.4.0 canonical wasm) and anvil (InvoiceDeskV3). The issuer and agent keys are the same
+   on both. 16 payment attempts, and the chain agreed with the reference evaluator on every one.
+   Still to do: the same on the public testnets.
 3. Proposals: a PQ extension issue to AP2, a post on the Ethereum Magicians agent-mandate thread, and
    feedback to the IETF WIMSE PQ agent identity draft.
 

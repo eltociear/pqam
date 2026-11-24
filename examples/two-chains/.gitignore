@@ -1,0 +1,4 @@
+mehub-home/
+.bin/
+runs/mehub-node.log
+runs/mehub-setup.log

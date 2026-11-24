@@ -1,0 +1,404 @@
+{
+ "about": "pqam/0.1 two-chain run: reference evaluator vs. the chain, attempt by attempt",
+ "startedAt": "2026-11-24T08:13:23.200Z",
+ "chains": {
+  "mehub": {
+   "enforcer": "cosmos:mechain_2401-1:me14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9sc0nehr",
+   "codeId": 1,
+   "wasmSha256": "8854a4e2051fbb45bc2db5e1750a3d7d5b07680309bc16bbf4720c49d0876e02",
+   "mandateHash": "aaa528912d84d60f7e4ee6289275799a5cc6418a9ba698736d64d823f5f236df",
+   "installed": {
+    "policy": {
+     "label": "two-chains-mehub",
+     "per_tx_limit": "100000000",
+     "daily_limit": "250000000",
+     "approve_above": "50000000",
+     "vendors": [
+      "me1c5rzmmntj62apyux0cn30lrj4e95uruwwaj9xp"
+     ],
+     "any_verified_vendor": true,
+     "expires_at": 1798100019
+    },
+    "registerTx": "09834C19DD6B11C5C6A000BB60F1565CA0DBD8226A6BFA58623D6433315E353E",
+    "depositTx": "71D0E3C0B76B7D4C65EB2745563959404E6F26829346ED680373D382C96DEC8F",
+    "acceptTx": "5821971C7B134D423A10F877AF09D9254FB8FAD990DA8C9D824779F6F81C8A3B"
+   },
+   "attempts": [
+    {
+     "name": "0.4 MEC to the listed vendor",
+     "request": {
+      "payee": "cosmos:mechain_2401-1:me1c5rzmmntj62apyux0cn30lrj4e95uruwwaj9xp",
+      "asset": "cosmos:mechain_2401-1/slip44:umec",
+      "amount": "40000000"
+     },
+     "expected": {
+      "decision": "pay",
+      "reason": "WithinMandate",
+      "window_used": "0"
+     },
+     "chain": {
+      "decision": "pay",
+      "tx": "02DBE118EB422911031F694779C5652F27EF4AB967852B767A9EAB27D87A2FB7"
+     },
+     "agree": true
+    },
+    {
+     "name": "0.6 MEC: above the hold line",
+     "request": {
+      "payee": "cosmos:mechain_2401-1:me1c5rzmmntj62apyux0cn30lrj4e95uruwwaj9xp",
+      "asset": "cosmos:mechain_2401-1/slip44:umec",
+      "amount": "60000000"
+     },
+     "expected": {
+      "decision": "hold",
+      "reason": "NeedsApproval",
+      "window_used": "40000000"
+     },
+     "chain": {
+      "decision": "hold",
+      "tx": "D60AB25C5DA197F8E43310F922787CFCB1243E37ED4588E7CE7D035604655A87"
+     },
+     "agree": true
+    },
+    {
+     "name": "1.00000001 MEC: over per_payment",
+     "request": {
+      "payee": "cosmos:mechain_2401-1:me1c5rzmmntj62apyux0cn30lrj4e95uruwwaj9xp",
+      "asset": "cosmos:mechain_2401-1/slip44:umec",
+      "amount": "100000001"
+     },
+     "expected": {
+      "decision": "refuse",
+      "reason": "OverPerPayment",
+      "window_used": "100000000"
+     },
+     "chain": {
+      "decision": "refuse",
+      "detail": "over per-payment limit: 100000001 > 100000000"
+     },
+     "agree": true
+    },
+    {
+     "name": "to an account with no ME ID, not listed",
+     "request": {
+      "payee": "cosmos:mechain_2401-1:me17y45xaw6ah038spqys6mmvnrdj3nu886tmgl2u",
+      "asset": "cosmos:mechain_2401-1/slip44:umec",
+      "amount": "1000000"
+     },
+     "expected": {
+      "decision": "refuse",
+      "reason": "PayeeNotInScope",
+      "window_used": "100000000"
+     },
+     "chain": {
+      "decision": "refuse",
+      "detail": "vendor me17y45xaw6ah038spqys6mmvnrdj3nu886tmgl2u is not allowed by this leash"
+     },
+     "agree": true
+    },
+    {
+     "name": "0.3 MEC to a vendor admitted by its ME ID",
+     "request": {
+      "payee": "cosmos:mechain_2401-1:me1f8a0uwynd4k8zedl2mlaky7mpyrwh0l3z63esr",
+      "asset": "cosmos:mechain_2401-1/slip44:umec",
+      "amount": "30000000"
+     },
+     "expected": {
+      "decision": "pay",
+      "reason": "WithinMandate",
+      "window_used": "100000000"
+     },
+     "chain": {
+      "decision": "pay",
+      "tx": "3C7D4DABA5DFD77F926ACF1B1DE332A4C027E98F2F7A20B1129AC12E2390D673"
+     },
+     "agree": true
+    },
+    {
+     "name": "1 MEC: window 1.3 + 1 = 2.3 of 2.5, held",
+     "request": {
+      "payee": "cosmos:mechain_2401-1:me1c5rzmmntj62apyux0cn30lrj4e95uruwwaj9xp",
+      "asset": "cosmos:mechain_2401-1/slip44:umec",
+      "amount": "100000000"
+     },
+     "expected": {
+      "decision": "hold",
+      "reason": "NeedsApproval",
+      "window_used": "130000000"
+     },
+     "chain": {
+      "decision": "hold",
+      "tx": "2E3366E66C41034E7ED16BC1651E8DF2C2D3DE6F69884D673CA430058BD46EB3"
+     },
+     "agree": true
+    },
+    {
+     "name": "0.3 MEC: window 2.3 + 0.3 > 2.5",
+     "request": {
+      "payee": "cosmos:mechain_2401-1:me1c5rzmmntj62apyux0cn30lrj4e95uruwwaj9xp",
+      "asset": "cosmos:mechain_2401-1/slip44:umec",
+      "amount": "30000000"
+     },
+     "expected": {
+      "decision": "refuse",
+      "reason": "OverWindow",
+      "window_used": "230000000"
+     },
+     "chain": {
+      "decision": "refuse",
+      "detail": "over daily limit: 230000000 spent in the last 24h + 30000000 > 250000000"
+     },
+     "agree": true
+    },
+    {
+     "name": "after the revoke: 0.01 MEC",
+     "request": {
+      "payee": "cosmos:mechain_2401-1:me1c5rzmmntj62apyux0cn30lrj4e95uruwwaj9xp",
+      "asset": "cosmos:mechain_2401-1/slip44:umec",
+      "amount": "1000000"
+     },
+     "expected": {
+      "decision": "refuse",
+      "reason": "Revoked",
+      "window_used": "70000000"
+     },
+     "chain": {
+      "decision": "refuse",
+      "detail": "agent revoked"
+     },
+     "agree": true
+    }
+   ],
+   "revoke": {
+    "pqamRevokeVerified": true,
+    "revokeTx": "70753ED4667A4C85C6CCED8E642FB7535C216495CC59435F141385D373244913"
+   }
+  },
+  "evm": {
+   "enforcer": "eip155:9800:0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
+   "mandateHash": "8700aee76e599adc92b5391402eafbef5639e9df693808d8537a5c8f157bf684",
+   "installed": {
+    "chainId": 9800,
+    "desk": "0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
+    "token": "0xF06C45E1634A2E34Ba5cAe15783527fa448a6359",
+    "limit": {
+     "perPayment": "100000000",
+     "daily": "250000000"
+    },
+    "vendors": [
+     "0x782c4E8FD659A02dd6f7EFB767a9a1a8142a2801"
+    ],
+    "agentRule": {
+     "allowedEvmCalls": [
+      "0x69de2787536c097bd14795f730cb8cf2dd3fd53a/0xf19ff4ff"
+     ],
+     "allowedDenoms": null,
+     "expiresAt": 1798100049
+    },
+    "txs": {
+     "setLimit": "0x4f3ee228d58a42615a8104cd317c68ac149841ea4e2499287eb4916369a5845a",
+     "approveVendor 0x782c4E8FD659A02dd6f7EFB767a9a1a8142a2801": "0x17c498d9694990d34880bd63c83634ce56d966035ac55ffe1763e913781ad545",
+     "setAgent": "0x40525bebf8feb4d5e2ba7d13305701d9328391abc80136cddc3b26ad7fae0ca3",
+     "allowance": "0xc7f2bd3083786e07706f350fa9b8fa19d7aa6261afa05aa807fbcfbc6c149531"
+    }
+   },
+   "attempts": [
+    {
+     "name": "80 tUSD, genuine invoice",
+     "request": {
+      "payee": "eip155:9800:0x782c4E8FD659A02dd6f7EFB767a9a1a8142a2801",
+      "asset": "eip155:9800/erc20:0xF06C45E1634A2E34Ba5cAe15783527fa448a6359",
+      "amount": "80000000",
+      "call": {
+       "target": "eip155:9800:0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
+       "selector": "0xf19ff4ff"
+      },
+      "invoiceVerified": true
+     },
+     "expected": {
+      "decision": "pay",
+      "reason": "WithinMandate",
+      "window_used": "0"
+     },
+     "chain": {
+      "decision": "pay",
+      "tx": "0xf6272b78ff62645fe54a18f964315bb36ecc8ce27ac80c82dfbad0801e233ab9"
+     },
+     "agree": true
+    },
+    {
+     "name": "120 tUSD: over per_payment",
+     "request": {
+      "payee": "eip155:9800:0x782c4E8FD659A02dd6f7EFB767a9a1a8142a2801",
+      "asset": "eip155:9800/erc20:0xF06C45E1634A2E34Ba5cAe15783527fa448a6359",
+      "amount": "120000000",
+      "call": {
+       "target": "eip155:9800:0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
+       "selector": "0xf19ff4ff"
+      },
+      "invoiceVerified": true
+     },
+     "expected": {
+      "decision": "refuse",
+      "reason": "OverPerPayment",
+      "window_used": "80000000"
+     },
+     "chain": {
+      "decision": "refuse",
+      "detail": "OverPerPaymentLimit"
+     },
+     "agree": true
+    },
+    {
+     "name": "90 tUSD: window 80 + 90 of 250",
+     "request": {
+      "payee": "eip155:9800:0x782c4E8FD659A02dd6f7EFB767a9a1a8142a2801",
+      "asset": "eip155:9800/erc20:0xF06C45E1634A2E34Ba5cAe15783527fa448a6359",
+      "amount": "90000000",
+      "call": {
+       "target": "eip155:9800:0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
+       "selector": "0xf19ff4ff"
+      },
+      "invoiceVerified": true
+     },
+     "expected": {
+      "decision": "pay",
+      "reason": "WithinMandate",
+      "window_used": "80000000"
+     },
+     "chain": {
+      "decision": "pay",
+      "tx": "0xe64bde9dd88e02c43edcddd594060ef42c51ca8b6495cb8aa846048ecb4bbbc1"
+     },
+     "agree": true
+    },
+    {
+     "name": "genuine signature, amount edited 50 -> 95",
+     "request": {
+      "payee": "eip155:9800:0x782c4E8FD659A02dd6f7EFB767a9a1a8142a2801",
+      "asset": "eip155:9800/erc20:0xF06C45E1634A2E34Ba5cAe15783527fa448a6359",
+      "amount": "95000000",
+      "call": {
+       "target": "eip155:9800:0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
+       "selector": "0xf19ff4ff"
+      },
+      "invoiceVerified": false
+     },
+     "expected": {
+      "decision": "refuse",
+      "reason": "InvoiceRequired",
+      "window_used": "170000000"
+     },
+     "chain": {
+      "decision": "refuse",
+      "detail": "BadSignature"
+     },
+     "agree": true
+    },
+    {
+     "name": "stranger with its own valid invoice",
+     "request": {
+      "payee": "eip155:9800:0x3AFD58Bdd46a35455d38C2C51ee7692E8eE3c849",
+      "asset": "eip155:9800/erc20:0xF06C45E1634A2E34Ba5cAe15783527fa448a6359",
+      "amount": "10000000",
+      "call": {
+       "target": "eip155:9800:0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
+       "selector": "0xf19ff4ff"
+      },
+      "invoiceVerified": true
+     },
+     "expected": {
+      "decision": "refuse",
+      "reason": "PayeeNotInScope",
+      "window_used": "170000000"
+     },
+     "chain": {
+      "decision": "refuse",
+      "detail": "UnknownVendor"
+     },
+     "agree": true
+    },
+    {
+     "name": "90 tUSD: window 170 + 90 > 250",
+     "request": {
+      "payee": "eip155:9800:0x782c4E8FD659A02dd6f7EFB767a9a1a8142a2801",
+      "asset": "eip155:9800/erc20:0xF06C45E1634A2E34Ba5cAe15783527fa448a6359",
+      "amount": "90000000",
+      "call": {
+       "target": "eip155:9800:0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
+       "selector": "0xf19ff4ff"
+      },
+      "invoiceVerified": true
+     },
+     "expected": {
+      "decision": "refuse",
+      "reason": "OverWindow",
+      "window_used": "170000000"
+     },
+     "chain": {
+      "decision": "refuse",
+      "detail": "OverDailyLimit"
+     },
+     "agree": true
+    },
+    {
+     "name": "next UTC day: 90 tUSD fits again",
+     "request": {
+      "payee": "eip155:9800:0x782c4E8FD659A02dd6f7EFB767a9a1a8142a2801",
+      "asset": "eip155:9800/erc20:0xF06C45E1634A2E34Ba5cAe15783527fa448a6359",
+      "amount": "90000000",
+      "call": {
+       "target": "eip155:9800:0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
+       "selector": "0xf19ff4ff"
+      },
+      "invoiceVerified": true
+     },
+     "expected": {
+      "decision": "pay",
+      "reason": "WithinMandate",
+      "window_used": "0"
+     },
+     "chain": {
+      "decision": "pay",
+      "tx": "0x65346e811109a85a33fd6588c4078f5672a8166180e38855879bc2fa8ec76721"
+     },
+     "agree": true
+    },
+    {
+     "name": "after the revoke: 10 tUSD",
+     "request": {
+      "payee": "eip155:9800:0x782c4E8FD659A02dd6f7EFB767a9a1a8142a2801",
+      "asset": "eip155:9800/erc20:0xF06C45E1634A2E34Ba5cAe15783527fa448a6359",
+      "amount": "10000000",
+      "call": {
+       "target": "eip155:9800:0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
+       "selector": "0xf19ff4ff"
+      },
+      "invoiceVerified": true
+     },
+     "expected": {
+      "decision": "refuse",
+      "reason": "Revoked",
+      "window_used": "90000000"
+     },
+     "chain": {
+      "decision": "refuse",
+      "detail": "NotPayersAgent"
+     },
+     "agree": true
+    }
+   ],
+   "note": "Local EVM: ML-DSA-87 invoice signatures are verified off-chain with real ML-DSA-87 and recorded in a fail-closed stand-in at 0x…0a01 (QoreChain verifies them in its precompile). QoreChain's account-abstraction spending rule (agentRule) has no local equivalent, so only the desk's limits are enforced here.",
+   "revoke": {
+    "pqamRevokeVerified": true,
+    "setAgentFalseTx": "0x2ff2abd132ffeba09bf0c193f2c47fa36aa19819d8e9be5e9735e07e7dc2940e"
+   }
+  }
+ },
+ "summary": {
+  "attempts": 16,
+  "disagreements": 0,
+  "sameIssuerKeys": true,
+  "sameAgentKey": true
+ }
+}

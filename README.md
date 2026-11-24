@@ -55,6 +55,14 @@ configuration: a CosmWasm `PolicyMsg`, or desk limits plus the agent key's QoreC
 If the target can't enforce something the mandate asks for (a rolling window on a UTC-day desk, a
 hold on a desk that can't hold), the adapter refuses and says why. It never loosens a mandate.
 
+## Two chains
+
+[examples/two-chains](examples/two-chains) installs mandates on two running enforcers: Leash ID on a
+private ME Hub node, and InvoiceDeskV3 on anvil. The issuer keys and the agent key are the same on
+both. Then it makes 16 payment attempts. The chain agreed with `evaluate()` on every one: pay, hold,
+refuse, both window kinds, a payee admitted only by its on-chain ME ID, an edited invoice, and both
+revokes. That README also lists what a local run does not show.
+
 ## What it is and isn't
 
 - It **is** the signed objects, their verification, and a reference evaluator. The evaluator
@@ -68,7 +76,7 @@ hold on a desk that can't hold), the adapter refuses and says why. It never loos
   [@noble/curves](https://github.com/paulmillr/noble-curves). pqam adds no cryptography of its own.
 
 ```
-npm test          # 73 tests: vectors, JCS, objects, adapters, QoreChain interop
+npm test          # 78 tests: vectors, JCS, objects, adapters, QoreChain interop, two-chain evidence
 npm run vectors   # rebuild vectors/pqam-0.1.json (must not change)
 ```
 
