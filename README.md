@@ -7,13 +7,14 @@ key spend *this much* on *these* payees until *then*, has to stand up in a dispu
 later. If that mandate is signed with ECDSA or EdDSA only, then once a cryptographically relevant
 quantum computer exists, anyone holding the issuer's public key can forge one. **pqam** signs
 mandates, revocations, approvals, invoices and receipts with ML-DSA (FIPS 204). During the
-transition it signs hybrid, and hybrid means **every** key must verify.
+transition it signs hybrid, and hybrid means **every** key must verify. Each signature is bound to
+the whole signer set, so the classical half can't be stripped off.
 
 - **Spec:** [SPEC.md](SPEC.md) (draft 0.1). The same text is `MANDATE.md` in
   [Invoice Leash](https://github.com/eltociear/invoice-leash) and
   [Leash ID](https://github.com/eltociear/leash-id), the two running systems it was written from.
-- **Conformance vectors:** [vectors/pqam-0.1.json](vectors/pqam-0.1.json), with 23 signature cases
-  (including Q-Day forgeries, cross-type replays, weak keys and malformed objects) and 26 policy
+- **Conformance vectors:** [vectors/pqam-0.1.json](vectors/pqam-0.1.json), with 26 signature cases
+  (including Q-Day forgeries, hybrid stripping, cross-type replays, weak keys and malformed objects) and 26 policy
   cases (limits, windows, holds, scope, revocation, and the order of checks). Every key comes from
   a published seed and every signature is deterministic, so the file is rebuilt byte for byte
   (`npm run vectors`, and CI checks it).
@@ -76,7 +77,7 @@ revokes. That README also lists what a local run does not show.
   [@noble/curves](https://github.com/paulmillr/noble-curves). pqam adds no cryptography of its own.
 
 ```
-npm test          # 78 tests: vectors, JCS, objects, adapters, QoreChain interop, two-chain evidence
+npm test          # 81 tests: vectors, JCS, objects, adapters, QoreChain interop, two-chain evidence
 npm run vectors   # rebuild vectors/pqam-0.1.json (must not change)
 ```
 

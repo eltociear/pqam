@@ -17,7 +17,7 @@ test("canonical form, hash and signing message of every object", () => {
     if (!d.object) continue;
     assert.equal(P.canonicalize(P.body(d.object)), d.canonical, name);
     assert.equal(P.hashHex(d.object), d.hash, name);
-    assert.equal(Buffer.from(P.signingMessage(d.object.type, P.hash(d.object))).toString("hex"), d.message, name);
+    assert.equal(Buffer.from(P.signingMessage(d.object.type, P.hash(d.object), d.signers)).toString("hex"), d.message, name);
   }
 });
 

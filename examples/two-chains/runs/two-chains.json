@@ -1,12 +1,12 @@
 {
  "about": "pqam/0.1 two-chain run: reference evaluator vs. the chain, attempt by attempt",
- "startedAt": "2026-11-24T08:13:23.200Z",
+ "startedAt": "2026-11-24T09:16:59.336Z",
  "chains": {
   "mehub": {
    "enforcer": "cosmos:mechain_2401-1:me14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9sc0nehr",
    "codeId": 1,
    "wasmSha256": "8854a4e2051fbb45bc2db5e1750a3d7d5b07680309bc16bbf4720c49d0876e02",
-   "mandateHash": "aaa528912d84d60f7e4ee6289275799a5cc6418a9ba698736d64d823f5f236df",
+   "mandateHash": "a30afb1f3ba9ad227f39668a097f2750e61179301f733a0fd941ee71951d9a9c",
    "installed": {
     "policy": {
      "label": "two-chains-mehub",
@@ -17,9 +17,9 @@
       "me1c5rzmmntj62apyux0cn30lrj4e95uruwwaj9xp"
      ],
      "any_verified_vendor": true,
-     "expires_at": 1798100019
+     "expires_at": 1798103832
     },
-    "registerTx": "09834C19DD6B11C5C6A000BB60F1565CA0DBD8226A6BFA58623D6433315E353E",
+    "registerTx": "E8EE75D4D531A49A3B95EADF52E7FA883747DA7F256F17D860EE1967347534F5",
     "depositTx": "71D0E3C0B76B7D4C65EB2745563959404E6F26829346ED680373D382C96DEC8F",
     "acceptTx": "5821971C7B134D423A10F877AF09D9254FB8FAD990DA8C9D824779F6F81C8A3B"
    },
@@ -176,7 +176,7 @@
   },
   "evm": {
    "enforcer": "eip155:9800:0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
-   "mandateHash": "8700aee76e599adc92b5391402eafbef5639e9df693808d8537a5c8f157bf684",
+   "mandateHash": "2ebbe3818ba6124b8662a8d44a5bc132bf237126a7bdead64c8a7edb536f557c",
    "installed": {
     "chainId": 9800,
     "desk": "0x69De2787536c097Bd14795F730CB8CF2dd3FD53a",
@@ -193,7 +193,7 @@
       "0x69de2787536c097bd14795f730cb8cf2dd3fd53a/0xf19ff4ff"
      ],
      "allowedDenoms": null,
-     "expiresAt": 1798100049
+     "expiresAt": 1798103862
     },
     "txs": {
      "setLimit": "0x4f3ee228d58a42615a8104cd317c68ac149841ea4e2499287eb4916369a5845a",
@@ -222,7 +222,7 @@
      },
      "chain": {
       "decision": "pay",
-      "tx": "0xf6272b78ff62645fe54a18f964315bb36ecc8ce27ac80c82dfbad0801e233ab9"
+      "tx": "0x44a8c4ae7d6e0055f6669536cc3717b1d3b5f8cc1ee24da070b6496552ed4a5c"
      },
      "agree": true
     },
@@ -268,7 +268,7 @@
      },
      "chain": {
       "decision": "pay",
-      "tx": "0xe64bde9dd88e02c43edcddd594060ef42c51ca8b6495cb8aa846048ecb4bbbc1"
+      "tx": "0xfde9b281c00519c97cdec7422b21a37008a5bfef21b155d8085d89813d11295a"
      },
      "agree": true
     },
@@ -360,7 +360,7 @@
      },
      "chain": {
       "decision": "pay",
-      "tx": "0x65346e811109a85a33fd6588c4078f5672a8166180e38855879bc2fa8ec76721"
+      "tx": "0x7ed82c72cb4cb34bba0b731901b4b1af2e831f5df9a676aed17bef3a4f04e6c7"
      },
      "agree": true
     },
@@ -391,7 +391,7 @@
    "note": "Local EVM: ML-DSA-87 invoice signatures are verified off-chain with real ML-DSA-87 and recorded in a fail-closed stand-in at 0x…0a01 (QoreChain verifies them in its precompile). QoreChain's account-abstraction spending rule (agentRule) has no local equivalent, so only the desk's limits are enforced here.",
    "revoke": {
     "pqamRevokeVerified": true,
-    "setAgentFalseTx": "0x2ff2abd132ffeba09bf0c193f2c47fa36aa19819d8e9be5e9735e07e7dc2940e"
+    "setAgentFalseTx": "0x5da970f5ca6b3c0868e78da7061b4eda7d1a2b2cc8418dc49e7f1c28a185904d"
    }
   }
  },

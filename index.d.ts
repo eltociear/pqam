@@ -49,7 +49,7 @@ export function signerFromSeed(alg: AlgName, seed: Uint8Array): Signer;
 export function body<T extends PqamObject>(o: T): Omit<T, "sig" | "accept">;
 export function hash(o: PqamObject): Uint8Array;
 export function hashHex(o: PqamObject): string;
-export function signingMessage(type: PqamObject["type"] | "accept", digest: Uint8Array): Uint8Array;
+export function signingMessage(type: PqamObject["type"] | "accept", digest: Uint8Array, kids: string[]): Uint8Array;
 export function sign<T extends PqamObject>(o: T, signers: Signer[], opts?: { hedged?: boolean }): T & { sig: SigEntry[] };
 export function accept(m: Mandate, agentSigners: Signer[], opts?: { hedged?: boolean }): Mandate & { accept: SigEntry[] };
 export function check(o: unknown): string[];

@@ -4,10 +4,13 @@
 // "accept":[...] (the agent key's co-signature). The BODY is the object without "sig" and
 // "accept". A signature covers
 //
-//   M = UTF-8("pqam/0.1/<type>") || 0x00 || SHA3-256(JCS(body))       (acceptance: type "accept",
-//                                                                     hash = the mandate's hash)
+//   M = UTF-8("pqam/0.1/<type>") || 0x00 || SHA3-256(JCS(body)) || SHA3-256(UTF-8(kids))
 //
-// so a signature made for one type can never pass as another. Signature entries are
+// (acceptance: type "accept", over the mandate's hash). `kids` is the sorted, comma-joined kid list
+// of EVERY key expected to co-sign. So a signature made for one type can never pass as another, and
+// a hybrid can't be separated: a PQ signature made alongside a classical one is bound to that pair,
+// so it fails when a verifier is offered the PQ key alone (the "stripping" attack; IETF
+// draft-uppalapati-wimse-pq-agent-identity PQ-R3). Signature entries are
 // {"alg","kid","sig"}: kid = first 8 bytes (hex) of SHA3-256(UTF-8(alg) || 0x00 || publicKey).
 // Verification is hybrid-AND: every key in the list must have exactly one valid signature, a
 // signature by a key not in the list is refused, and an unknown algorithm is refused.
@@ -66,13 +69,15 @@ export function hashHex(obj) {
   return bytesToHex(hash(obj));
 }
 
-export function signingMessage(type, digest) {
-  return concatBytes(utf8ToBytes(`${VERSION}/${type}`), new Uint8Array([0]), digest);
+export function signingMessage(type, digest, kids) {
+  if (!Array.isArray(kids) || kids.length === 0) throw new PqamError("Malformed", "signingMessage needs the co-signers' kids");
+  const set = sha3_256(utf8ToBytes([...kids].sort().join(",")));
+  return concatBytes(utf8ToBytes(`${VERSION}/${type}`), new Uint8Array([0]), digest, set);
 }
 
 // ---------- signing ----------
 function signEntries(type, digest, signers, opts) {
-  const msg = signingMessage(type, digest);
+  const msg = signingMessage(type, digest, signers.map((s) => kid(s.alg, s.publicKey)));
   return signers.map((s) => ({ alg: s.alg, kid: kid(s.alg, s.publicKey), sig: b64u.enc(alg(s.alg).sign(msg, s.secretKey, opts)) }));
 }
 
@@ -96,12 +101,12 @@ const fail = (code, why, extra = {}) => ({ ok: false, code, why, ...extra });
 export function verifyEntries(entries, keys, type, digest) {
   if (!Array.isArray(entries)) return fail("MissingSignature", `no ${type === "accept" ? "accept" : "sig"} list`);
   if (!Array.isArray(keys) || keys.length === 0) return fail("Malformed", "no keys to verify against");
-  const msg = signingMessage(type, digest);
   const want = new Map();
   for (const k of keys) {
     if (!Object.hasOwn(ALGS, k.alg)) return fail("UnknownAlgorithm", `key algorithm ${JSON.stringify(k.alg)}`);
     want.set(kid(k.alg, k.pub), k);
   }
+  const msg = signingMessage(type, digest, [...want.keys()]);
   const seen = new Set();
   for (const e of entries) {
     if (!e || typeof e !== "object" || Object.keys(e).sort().join() !== "alg,kid,sig") return fail("Malformed", "signature entry must be {alg,kid,sig}");

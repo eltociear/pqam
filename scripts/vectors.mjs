@@ -6,7 +6,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { shake256 } from "@noble/hashes/sha3.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
-import { canonicalize, signerFromSeed, publicKey, sign, accept, hashHex, hash, signingMessage, kid, b64u, ALGS } from "../src/index.mjs";
+import { canonicalize, signerFromSeed, publicKey, sign, accept, hashHex, hash, signingMessage, kid, b64u, ALGS, body as P_body } from "../src/index.mjs";
 
 const SEED_LEN = { "ML-DSA-44": 32, "ML-DSA-65": 32, "ML-DSA-87": 32, Ed25519: 32, ES256K: 48 };
 const seedOf = (label, alg) => shake256(utf8ToBytes(`pqam/0.1 test vector key: ${label}`), { dkLen: SEED_LEN[alg] });
@@ -23,6 +23,7 @@ export function buildVectors() {
   key("attacker.pq", "ML-DSA-87");
   key("attacker.classical", "ES256K");
   key("weak.mldsa44", "ML-DSA-44");
+  key("payee.classical", "ES256K");
   const pub = (n) => publicKey(K[n]);
 
   const T = 1797000000; // "now" for policy vectors (2026-12-12T13:20:00Z)
@@ -85,7 +86,7 @@ export function buildVectors() {
   const wrongAgent = accept(sign(M1u, I), [K["attacker.classical"]]);
   // Domain separation: the issuer's signature over the right hash, but made under the "accept" tag.
   const crossType = clone(M1);
-  crossType.sig = crossType.sig.map((e) => e.alg === "ML-DSA-87" ? { ...e, sig: b64u.enc(ALGS["ML-DSA-87"].sign(signingMessage("accept", hash(M1)), K["issuer.pq"].secretKey)) } : e);
+  crossType.sig = crossType.sig.map((e) => e.alg === "ML-DSA-87" ? { ...e, sig: b64u.enc(ALGS["ML-DSA-87"].sign(signingMessage("accept", hash(M1), ISSUER.keys.map((k) => kid(k.alg, k.pub))), K["issuer.pq"].secretKey)) } : e);
   const classicalOnly = accept(sign({ ...M1u, issuer: { id: ISSUER.id, keys: [pub("issuer.classical")] } }, [K["issuer.classical"]]), [K["agent.cosmos"]]);
   const mldsa44Only = accept(sign({ ...M1u, issuer: { id: ISSUER.id, keys: [pub("weak.mldsa44")] } }, [K["weak.mldsa44"]]), [K["agent.cosmos"]]);
   const floatAmount = clone(M1);
@@ -96,11 +97,16 @@ export function buildVectors() {
   tooLong.expires = tooLong.not_before + 367 * 86400;
   const revokeOther = sign({ v: "pqam/0.1", type: "revoke", mandate: hashHex(M2), at: T }, I);
   const approveByAgent = sign({ ...clone(approve), sig: undefined }, [K["agent.cosmos"]]);
+  // Stripping: a hybrid invoice (ML-DSA-65 + ES256K); the attacker removes the classical signature and
+  // offers the PQ key alone. The PQ signature was made for the pair, so it fails on its own.
+  const invoiceHybrid = sign({ ...P_body(invoice), id: "HOSTLINE-0043" }, [K["payee.pq"], K["payee.classical"]]);
+  const invoiceStripped = { ...clone(invoiceHybrid), sig: invoiceHybrid.sig.filter((e) => e.alg !== "ES256K") };
   const invoiceEdited = clone(invoice);
   invoiceEdited.amount = "95000000";
 
   const objects = { M1, M2, revoke, approve, invoice, receipt };
-  const describe = (o, tag) => ({ object: o, canonical: canonicalize(Object.fromEntries(Object.entries(o).filter(([k]) => k !== "sig" && k !== "accept"))), hash: hashHex(o), message: bytesToHex(signingMessage(tag ?? o.type, hash(o))) });
+  const kidsOf = (entries) => entries.map((e) => e.kid);
+  const describe = (o) => ({ object: o, canonical: canonicalize(P_body(o)), hash: hashHex(o), signers: kidsOf(o.sig), message: bytesToHex(signingMessage(o.type, hash(o), kidsOf(o.sig))) });
 
   const verify = [
     { name: "M1 is valid (hybrid issuer, accepted)", kind: "mandate", object: M1, expect: { ok: true, accepted: true } },
@@ -126,6 +132,9 @@ export function buildVectors() {
     { name: "invoice amount edited", kind: "by", object: invoiceEdited, keys: ["payee.pq"], expect: { ok: false, code: "BadSignature" } },
     { name: "invoice checked against another payee's key", kind: "by", object: invoice, keys: ["attacker.pq"], expect: { ok: false, code: "UnexpectedSigner" } },
     { name: "receipt by the enforcer", kind: "by", object: receipt, keys: ["enforcer.pq"], expect: { ok: true } },
+    { name: "hybrid invoice, both payee keys", kind: "by", object: invoiceHybrid, keys: ["payee.pq", "payee.classical"], expect: { ok: true } },
+    { name: "stripping: classical signature removed, PQ key offered alone", kind: "by", object: invoiceStripped, keys: ["payee.pq"], expect: { ok: false, code: "BadSignature" } },
+    { name: "stripping: classical signature removed, both keys expected", kind: "by", object: invoiceStripped, keys: ["payee.pq", "payee.classical"], expect: { ok: false, code: "MissingSignature" } },
   ];
 
   // ---- policy ----
@@ -172,9 +181,9 @@ export function buildVectors() {
 
   return {
     v: "pqam/0.1",
-    about: "Conformance vectors for pqam/0.1. Keys: seed = SHAKE256('pqam/0.1 test vector key: ' + name), 32 bytes (48 for ES256K). ML-DSA is FIPS 204 pure, empty context, deterministic (rnd = 0). ctx.verified_payees stands in for an on-chain payee_rule lookup.",
+    about: "Conformance vectors for pqam/0.1. Keys: seed = SHAKE256('pqam/0.1 test vector key: ' + name), 32 bytes (48 for ES256K). ML-DSA is FIPS 204 pure, empty context, deterministic (rnd = 0). Each object lists `signers` (the kids its signing message binds). ctx.verified_payees stands in for an on-chain payee_rule lookup.",
     keys: Object.fromEntries(Object.entries(K).map(([n, k]) => [n, { alg: k.alg, seed: bytesToHex(k.seed), pub: b64u.enc(k.publicKey), kid: kid(k.alg, k.publicKey) }])),
-    objects: { M1: describe(M1), M1_accept: { message: bytesToHex(signingMessage("accept", hash(M1))) }, M2: describe(M2), revoke: describe(revoke), approve: describe(approve), invoice: describe(invoice), receipt: describe(receipt) },
+    objects: { M1: describe(M1), M1_accept: { signers: kidsOf(M1.accept), message: bytesToHex(signingMessage("accept", hash(M1), kidsOf(M1.accept))) }, M2: describe(M2), revoke: describe(revoke), approve: describe(approve), invoice: describe(invoice), receipt: describe(receipt) },
     verify,
     policy,
   };
