@@ -173,6 +173,32 @@ is held by someone (Leash ID v0.2: `RegisterAgent` → `AcceptLeash`).
   It can never change the mandate. This is what Invoice Leash does on QoreChain today, because
   account abstraction there links only `ed25519 | secp256k1`.
 
+### 5.1 Verification and admission are separate verdicts
+
+The minimums in the table above are **policy**, not cryptography, and the two are reported
+separately:
+
+- **Verification** answers one question: did exactly these keys sign exactly these bytes?
+  (`BadSignature`, `MissingSignature`, `UnexpectedSigner`, …) A valid mandate signed only
+  classically *verifies*. The result carries `pq_level`, the highest ML-DSA category among the
+  verified keys (0 = none).
+- **Admission** is the verifier's policy over a verified object: `admitted`,
+  `admitted-with-warning`, `refused` or `not-reached` (verification failed). Its reasons are
+  `NoPqIssuance` (below `min_pq_level`) and `UntrustedTime`.
+
+The reason is evidence. Years later, "genuine but refused by policy" and "forged" are different
+findings and must never be the same word. A forged mandate fails verification and never reaches
+policy. A genuine classical-only mandate verifies, and is then refused once the transition date
+(`pq_required_from`, as in IETF PQ-R2) has passed.
+
+**The transition check uses a trusted time, never the verifier's clock.** The time is either
+`anchor` (a timestamp over the object, such as an RFC 3161 `gen_time` in an evidence pack) or
+`block` (the enforcer's block time when it acted). A policy that has a transition date refuses
+`local` time, or no time at all, as `UntrustedTime`: a refusal keyed to wall-clock time could be set
+by the party doing the refusing. An object at or above `min_pq_level` is admitted without a time.
+
+(This split was suggested in review on AP2 issue #338.)
+
 ## 6. Receipts and revocation
 
 ```jsonc
@@ -264,7 +290,7 @@ These come from building and attacking the two systems above, not from theory.
 1. **Done (0.1.0):** [eltociear/pqam](https://github.com/eltociear/pqam), a JavaScript library with
    TypeScript types. It canonicalises, signs and verifies `pqam/0.1` objects (ML-DSA-44/65/87,
    Ed25519, ES256K) and evaluates payments. Its conformance vectors are 26 verify cases (stripping
-   included) and 26 policy cases, reproduced byte for byte from seeds. QoreChain's `@qorechain/sdk` verifies its
+   included), 26 policy cases and 10 admission cases (section 5.1), reproduced byte for byte from seeds. QoreChain's `@qorechain/sdk` verifies its
    ML-DSA-87 signatures.
 2. **Done (0.1.0), compile step only:** the adapters turn a mandate into Leash ID's `PolicyMsg` or
    InvoiceDesk limits plus the agent's spending rule, and refuse what the target can't enforce.

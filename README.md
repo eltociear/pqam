@@ -14,8 +14,10 @@ the whole signer set, so the classical half can't be stripped off.
   [Invoice Leash](https://github.com/eltociear/invoice-leash) and
   [Leash ID](https://github.com/eltociear/leash-id), the two running systems it was written from.
 - **Conformance vectors:** [vectors/pqam-0.1.json](vectors/pqam-0.1.json), with 26 signature cases
-  (including Q-Day forgeries, hybrid stripping, cross-type replays, weak keys and malformed objects) and 26 policy
-  cases (limits, windows, holds, scope, revocation, and the order of checks). Every key comes from
+  (including Q-Day forgeries, hybrid stripping, cross-type replays and malformed objects), 26 policy
+  cases (limits, windows, holds, scope, revocation, and the order of checks), and 10 admission cases.
+  Admission is the policy verdict, kept apart from verification: a genuine classical-only mandate
+  *verifies*, and is refused after a transition date, checked against a trusted time. Every key comes from
   a published seed and every signature is deterministic, so the file is rebuilt byte for byte
   (`npm run vectors`, and CI checks it).
 - **Interop:** ML-DSA here is FIPS 204 "pure" with an empty context. That is the variant QoreChain
@@ -77,7 +79,7 @@ revokes. That README also lists what a local run does not show.
   [@noble/curves](https://github.com/paulmillr/noble-curves). pqam adds no cryptography of its own.
 
 ```
-npm test          # 81 tests: vectors, JCS, objects, adapters, QoreChain interop, two-chain evidence
+npm test          # 91 tests: vectors, JCS, objects, adapters, QoreChain interop, two-chain evidence
 npm run vectors   # rebuild vectors/pqam-0.1.json (must not change)
 ```
 

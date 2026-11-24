@@ -17,7 +17,7 @@
 import { sha3_256 } from "@noble/hashes/sha3.js";
 import { bytesToHex, hexToBytes, utf8ToBytes, concatBytes } from "@noble/hashes/utils.js";
 import { canonicalize } from "./jcs.mjs";
-import { ALGS, MIN_EVIDENCE_LEVEL, alg } from "./algs.mjs";
+import { ALGS, alg } from "./algs.mjs";
 
 export const VERSION = "pqam/0.1";
 export const TYPES = ["mandate", "revoke", "approve", "invoice", "receipt"];
@@ -124,34 +124,37 @@ export function verifyEntries(entries, keys, type, digest) {
     if (!alg(e.alg).verify(sig, msg, b64u.dec(k.pub))) return fail("BadSignature", `${e.alg} signature by ${e.kid} does not verify`);
   }
   for (const [id, k] of want) if (!seen.has(id)) return fail("MissingSignature", `no signature by ${k.alg} key ${id}`);
-  return ok();
+  return ok({ pq_level: pqLevel(keys) });
 }
 
-/** Keys used as evidence (issuer, payee, enforcer) need at least one ML-DSA key of level >= 3. */
-export function evidenceKeysProblem(keys, who) {
-  if (!keys.some((k) => ALGS[k.alg]?.pq && ALGS[k.alg].level >= MIN_EVIDENCE_LEVEL)) return `${who} has no ML-DSA-65 or ML-DSA-87 key`;
-  return null;
+/** Highest ML-DSA security category among `keys` (0 = no post-quantum key). All keys verified (AND), so this is what the signature set proves. */
+export function pqLevel(keys) {
+  return keys.reduce((m, k) => (ALGS[k.alg]?.pq ? Math.max(m, ALGS[k.alg].level) : m), 0);
 }
+
+// Verification is cryptographic only: did these exact keys sign these exact bytes. Whether a valid
+// but classical-only (or ML-DSA-44) object is acceptable is a POLICY verdict, made separately by
+// admit() (src/admission.mjs) against a trusted time. The two must never collapse into one word: years
+// later, in a dispute, "genuine but refused by policy" and "forged" are different findings.
 
 /**
- * Verify a mandate: shape, issuer signatures (all issuer keys, at least one ML-DSA-65/87), and,
- * unless `{ requireAccept: false }`, the agent's acceptance (all agent keys).
- * Returns { ok, code?, why?, hash, accepted }.
+ * Verify a mandate: shape, issuer signatures (all issuer keys), and, unless
+ * `{ requireAccept: false }`, the agent's acceptance (all agent keys).
+ * Returns { ok, code?, why?, hash, accepted, pq_level }.
  */
 export function verifyMandate(m, { requireAccept = true } = {}) {
   const problems = check(body(m));
   if (problems.length) return fail("Malformed", problems.join("; "));
   if (m.type !== "mandate") return fail("Malformed", `type is ${m.type}, not mandate`);
-  const weak = evidenceKeysProblem(m.issuer.keys, "issuer");
-  if (weak) return fail("WeakKey", weak);
   const digest = hash(m);
   const h = bytesToHex(digest);
   const s = verifyEntries(m.sig, m.issuer.keys, "mandate", digest);
   if (!s.ok) return { ...s, hash: h, accepted: false };
-  if (m.accept === undefined) return requireAccept ? fail("NotAccepted", "the agent key has not accepted this mandate", { hash: h, accepted: false }) : ok({ hash: h, accepted: false });
+  const pq_level = s.pq_level;
+  if (m.accept === undefined) return requireAccept ? fail("NotAccepted", "the agent key has not accepted this mandate", { hash: h, accepted: false, pq_level }) : ok({ hash: h, accepted: false, pq_level });
   const a = verifyEntries(m.accept, m.agent.keys, "accept", digest);
-  if (!a.ok) return { ...a, why: `acceptance: ${a.why}`, hash: h, accepted: false };
-  return ok({ hash: h, accepted: true });
+  if (!a.ok) return { ...a, why: `acceptance: ${a.why}`, hash: h, accepted: false, pq_level };
+  return ok({ hash: h, accepted: true, pq_level });
 }
 
 /** Verify an object issued under a mandate by its issuer (revoke, approve). */
@@ -172,8 +175,6 @@ export function verifyBy(obj, keys) {
   if (problems.length) return fail("Malformed", problems.join("; "));
   const who = obj.type === "invoice" ? "payee" : obj.type === "receipt" ? "enforcer" : null;
   if (!who) return fail("Malformed", `use verifyMandate/verifyIssued for type ${obj.type}`);
-  const weak = evidenceKeysProblem(keys, who);
-  if (weak) return fail("WeakKey", weak);
   return verifyEntries(obj.sig, keys, obj.type, hash(obj));
 }
 

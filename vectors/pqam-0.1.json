@@ -434,7 +434,8 @@
    },
    "expect": {
     "ok": true,
-    "accepted": true
+    "accepted": true,
+    "pq_level": 5
    }
   },
   {
@@ -1165,7 +1166,7 @@
    }
   },
   {
-   "name": "issuer with a classical key only",
+   "name": "issuer with a classical key only (verifies; admission decides)",
    "kind": "mandate",
    "object": {
     "v": "pqam/0.1",
@@ -1232,12 +1233,13 @@
     ]
    },
    "expect": {
-    "ok": false,
-    "code": "WeakKey"
+    "ok": true,
+    "accepted": true,
+    "pq_level": 0
    }
   },
   {
-   "name": "issuer with ML-DSA-44 only",
+   "name": "issuer with ML-DSA-44 only (verifies; admission decides)",
    "kind": "mandate",
    "object": {
     "v": "pqam/0.1",
@@ -1304,8 +1306,9 @@
     ]
    },
    "expect": {
-    "ok": false,
-    "code": "WeakKey"
+    "ok": true,
+    "accepted": true,
+    "pq_level": 2
    }
   },
   {
@@ -3008,6 +3011,149 @@
    "expect": {
     "decision": "refuse",
     "reason": "OverWindow"
+   }
+  }
+ ],
+ "admission": [
+  {
+   "name": "PQ-signed mandate, no transition date",
+   "verify": "M1 is valid (hybrid issuer, accepted)",
+   "policy": {},
+   "expect": {
+    "admitted": true,
+    "verdict": "admitted"
+   }
+  },
+  {
+   "name": "PQ-signed mandate after the date, even on local time",
+   "verify": "M1 is valid (hybrid issuer, accepted)",
+   "policy": {
+    "pq_required_from": 1830297600
+   },
+   "time": {
+    "at": 1830297601,
+    "source": "local"
+   },
+   "expect": {
+    "admitted": true,
+    "verdict": "admitted"
+   }
+  },
+  {
+   "name": "classical-only, no transition date: warned",
+   "verify": "issuer with a classical key only (verifies; admission decides)",
+   "policy": {},
+   "expect": {
+    "admitted": true,
+    "verdict": "admitted-with-warning",
+    "reason": "NoPqIssuance"
+   }
+  },
+  {
+   "name": "classical-only, anchored before the date: warned",
+   "verify": "issuer with a classical key only (verifies; admission decides)",
+   "policy": {
+    "pq_required_from": 1830297600
+   },
+   "time": {
+    "at": 1830297599,
+    "source": "anchor"
+   },
+   "expect": {
+    "admitted": true,
+    "verdict": "admitted-with-warning",
+    "reason": "NoPqIssuance"
+   }
+  },
+  {
+   "name": "classical-only, anchored at the date: refused (signature still verifies)",
+   "verify": "issuer with a classical key only (verifies; admission decides)",
+   "policy": {
+    "pq_required_from": 1830297600
+   },
+   "time": {
+    "at": 1830297600,
+    "source": "anchor"
+   },
+   "expect": {
+    "admitted": false,
+    "verdict": "refused",
+    "reason": "NoPqIssuance"
+   }
+  },
+  {
+   "name": "classical-only, block time after the date: refused",
+   "verify": "issuer with a classical key only (verifies; admission decides)",
+   "policy": {
+    "pq_required_from": 1830297600
+   },
+   "time": {
+    "at": 1830384000,
+    "source": "block"
+   },
+   "expect": {
+    "admitted": false,
+    "verdict": "refused",
+    "reason": "NoPqIssuance"
+   }
+  },
+  {
+   "name": "classical-only, verifier's own clock: refused as untrusted time",
+   "verify": "issuer with a classical key only (verifies; admission decides)",
+   "policy": {
+    "pq_required_from": 1830297600
+   },
+   "time": {
+    "at": 1830297599,
+    "source": "local"
+   },
+   "expect": {
+    "admitted": false,
+    "verdict": "refused",
+    "reason": "UntrustedTime"
+   }
+  },
+  {
+   "name": "classical-only, no time at all: refused as untrusted time",
+   "verify": "issuer with a classical key only (verifies; admission decides)",
+   "policy": {
+    "pq_required_from": 1830297600
+   },
+   "expect": {
+    "admitted": false,
+    "verdict": "refused",
+    "reason": "UntrustedTime"
+   }
+  },
+  {
+   "name": "ML-DSA-44 only, after the date: refused",
+   "verify": "issuer with ML-DSA-44 only (verifies; admission decides)",
+   "policy": {
+    "pq_required_from": 1830297600
+   },
+   "time": {
+    "at": 1830297600,
+    "source": "anchor"
+   },
+   "expect": {
+    "admitted": false,
+    "verdict": "refused",
+    "reason": "NoPqIssuance"
+   }
+  },
+  {
+   "name": "Q-Day forgery: fails verification, policy never reached",
+   "verify": "Q-Day forgery: real classical signature + attacker's ML-DSA under the issuer's kid",
+   "policy": {
+    "pq_required_from": 1830297600
+   },
+   "time": {
+    "at": 1830297599,
+    "source": "anchor"
+   },
+   "expect": {
+    "admitted": false,
+    "verdict": "not-reached"
    }
   }
  ]

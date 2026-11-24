@@ -109,7 +109,7 @@ export function buildVectors() {
   const describe = (o) => ({ object: o, canonical: canonicalize(P_body(o)), hash: hashHex(o), signers: kidsOf(o.sig), message: bytesToHex(signingMessage(o.type, hash(o), kidsOf(o.sig))) });
 
   const verify = [
-    { name: "M1 is valid (hybrid issuer, accepted)", kind: "mandate", object: M1, expect: { ok: true, accepted: true } },
+    { name: "M1 is valid (hybrid issuer, accepted)", kind: "mandate", object: M1, expect: { ok: true, accepted: true, pq_level: 5 } },
     { name: "M2 is valid", kind: "mandate", object: M2, expect: { ok: true, accepted: true } },
     { name: "edited limit after signing", kind: "mandate", object: tampered, expect: { ok: false, code: "BadSignature" } },
     { name: "PQ signature removed (classical half only)", kind: "mandate", object: noPq, expect: { ok: false, code: "MissingSignature" } },
@@ -119,8 +119,8 @@ export function buildVectors() {
     { name: "not accepted by the agent", kind: "mandate", object: unaccepted, expect: { ok: false, code: "NotAccepted" } },
     { name: "accepted by a key that is not the agent's", kind: "mandate", object: wrongAgent, expect: { ok: false, code: "UnexpectedSigner" } },
     { name: "issuer signature made under the accept tag", kind: "mandate", object: crossType, expect: { ok: false, code: "BadSignature" } },
-    { name: "issuer with a classical key only", kind: "mandate", object: classicalOnly, expect: { ok: false, code: "WeakKey" } },
-    { name: "issuer with ML-DSA-44 only", kind: "mandate", object: mldsa44Only, expect: { ok: false, code: "WeakKey" } },
+    { name: "issuer with a classical key only (verifies; admission decides)", kind: "mandate", object: classicalOnly, expect: { ok: true, accepted: true, pq_level: 0 } },
+    { name: "issuer with ML-DSA-44 only (verifies; admission decides)", kind: "mandate", object: mldsa44Only, expect: { ok: true, accepted: true, pq_level: 2 } },
     { name: "amount as a JSON number", kind: "mandate", object: floatAmount, expect: { ok: false, code: "Malformed" } },
     { name: "a field pqam/0.1 does not define", kind: "mandate", object: extraField, expect: { ok: false, code: "Malformed" } },
     { name: "mandate longer than 366 days", kind: "mandate", object: tooLong, expect: { ok: false, code: "Malformed" } },
@@ -179,6 +179,22 @@ export function buildVectors() {
     ["M2 calendar: 240 paid today, 100 more does not", "M2", r2("100000000"), c1({ verified_payees: [], history: [{ at: DAY + 60, amount: "240000000", status: "paid" }] }), "refuse", "OverWindow"],
   ].map(([name, mandate, request, ctx, decision, reason]) => ({ name, mandate, request, ctx, expect: { decision, reason } }));
 
+  // ---- admission: the policy verdict, over a verify vector's result ----
+  const TRANS = 1830297600; // a transition date for the vectors (2028-01-01T00:00:00Z)
+  const P = { pq_required_from: TRANS };
+  const admission = [
+    ["PQ-signed mandate, no transition date", "M1 is valid (hybrid issuer, accepted)", {}, undefined, true, "admitted", undefined],
+    ["PQ-signed mandate after the date, even on local time", "M1 is valid (hybrid issuer, accepted)", P, { at: TRANS + 1, source: "local" }, true, "admitted", undefined],
+    ["classical-only, no transition date: warned", "issuer with a classical key only (verifies; admission decides)", {}, undefined, true, "admitted-with-warning", "NoPqIssuance"],
+    ["classical-only, anchored before the date: warned", "issuer with a classical key only (verifies; admission decides)", P, { at: TRANS - 1, source: "anchor" }, true, "admitted-with-warning", "NoPqIssuance"],
+    ["classical-only, anchored at the date: refused (signature still verifies)", "issuer with a classical key only (verifies; admission decides)", P, { at: TRANS, source: "anchor" }, false, "refused", "NoPqIssuance"],
+    ["classical-only, block time after the date: refused", "issuer with a classical key only (verifies; admission decides)", P, { at: TRANS + 86400, source: "block" }, false, "refused", "NoPqIssuance"],
+    ["classical-only, verifier's own clock: refused as untrusted time", "issuer with a classical key only (verifies; admission decides)", P, { at: TRANS - 1, source: "local" }, false, "refused", "UntrustedTime"],
+    ["classical-only, no time at all: refused as untrusted time", "issuer with a classical key only (verifies; admission decides)", P, undefined, false, "refused", "UntrustedTime"],
+    ["ML-DSA-44 only, after the date: refused", "issuer with ML-DSA-44 only (verifies; admission decides)", P, { at: TRANS, source: "anchor" }, false, "refused", "NoPqIssuance"],
+    ["Q-Day forgery: fails verification, policy never reached", "Q-Day forgery: real classical signature + attacker's ML-DSA under the issuer's kid", P, { at: TRANS - 1, source: "anchor" }, false, "not-reached", undefined],
+  ].map(([name, verify, policy, time, admitted, verdict, reason]) => ({ name, verify, policy, ...(time ? { time } : {}), expect: { admitted, verdict, ...(reason ? { reason } : {}) } }));
+
   return {
     v: "pqam/0.1",
     about: "Conformance vectors for pqam/0.1. Keys: seed = SHAKE256('pqam/0.1 test vector key: ' + name), 32 bytes (48 for ES256K). ML-DSA is FIPS 204 pure, empty context, deterministic (rnd = 0). Each object lists `signers` (the kids its signing message binds). ctx.verified_payees stands in for an on-chain payee_rule lookup.",
@@ -186,6 +202,7 @@ export function buildVectors() {
     objects: { M1: describe(M1), M1_accept: { signers: kidsOf(M1.accept), message: bytesToHex(signingMessage("accept", hash(M1), kidsOf(M1.accept))) }, M2: describe(M2), revoke: describe(revoke), approve: describe(approve), invoice: describe(invoice), receipt: describe(receipt) },
     verify,
     policy,
+    admission,
   };
 }
 
@@ -197,5 +214,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   mkdirSync(new URL("../vectors/", import.meta.url), { recursive: true });
   const v = buildVectors();
   writeFileSync(new URL("../vectors/pqam-0.1.json", import.meta.url), serialise(v));
-  console.log(`vectors/pqam-0.1.json: ${Object.keys(v.keys).length} keys, ${v.verify.length} verify, ${v.policy.length} policy vectors`);
+  console.log(`vectors/pqam-0.1.json: ${Object.keys(v.keys).length} keys, ${v.verify.length} verify, ${v.policy.length} policy, ${v.admission.length} admission vectors`);
 }

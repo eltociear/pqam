@@ -30,8 +30,9 @@ export interface Receipt {
 }
 export type PqamObject = Mandate | Revoke | Approve | Invoice | Receipt;
 
-export type VerifyCode = "Malformed" | "UnknownAlgorithm" | "MissingSignature" | "BadSignature" | "UnexpectedSigner" | "WeakKey" | "NotAccepted" | "WrongMandate";
-export type VerifyResult = { ok: true; hash?: string; accepted?: boolean } | { ok: false; code: VerifyCode; why: string; hash?: string; accepted?: boolean };
+export type VerifyCode = "Malformed" | "UnknownAlgorithm" | "MissingSignature" | "BadSignature" | "UnexpectedSigner" | "NotAccepted" | "WrongMandate";
+/** Cryptographic verification only. pq_level = highest ML-DSA category among the verified keys (0 = none). */
+export type VerifyResult = { ok: true; hash?: string; accepted?: boolean; pq_level: number } | { ok: false; code: VerifyCode; why: string; hash?: string; accepted?: boolean; pq_level?: number };
 
 export const VERSION: "pqam/0.1";
 export const TYPES: readonly PqamObject["type"][];
@@ -78,3 +79,14 @@ export function toInvoiceDesk(m: Mandate): AdapterResult<{
 }>;
 export function bytesToHex(b: Uint8Array): string;
 export function hexToBytes(h: string): Uint8Array;
+export function pqLevel(keys: PublicKey[]): number;
+
+/** Policy verdict, kept apart from verification (src/admission.mjs). */
+export interface AdmissionPolicy { min_pq_level: number; pq_required_from: number | null; trusted_time_sources: readonly ("anchor" | "block" | "local")[] }
+export const DEFAULT_POLICY: Readonly<AdmissionPolicy>;
+export interface TrustedTime { at: number; source: "anchor" | "block" | "local" }
+export function admit(verification: VerifyResult, opts?: { policy?: Partial<AdmissionPolicy>; time?: TrustedTime }): {
+  admitted: boolean;
+  verification: { ok: boolean; code?: VerifyCode; pq_level?: number };
+  policy: { verdict: "admitted" | "admitted-with-warning" | "refused" | "not-reached"; reason?: "NoPqIssuance" | "UntrustedTime"; why?: string; time?: TrustedTime };
+};
