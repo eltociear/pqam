@@ -79,7 +79,7 @@ revokes. That README also lists what a local run does not show.
   [@noble/curves](https://github.com/paulmillr/noble-curves). pqam adds no cryptography of its own.
 
 ```
-npm test          # 91 tests: vectors, JCS, objects, adapters, QoreChain interop, two-chain evidence
+npm test          # 113 tests: vectors, JCS, objects, adapters, QoreChain interop, two-chain evidence, AP2 interop
 npm run vectors   # rebuild vectors/pqam-0.1.json (must not change)
 ```
 
