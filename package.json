@@ -1,0 +1,35 @@
+{
+  "name": "pqam",
+  "version": "0.1.0",
+  "description": "PQ Agent Mandate: post-quantum (ML-DSA, hybrid-AND) signed spending mandates for AI agents. Canonicalise, sign, verify, evaluate, and compile to on-chain enforcers.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./src/index.mjs"
+    }
+  },
+  "types": "./index.d.ts",
+  "files": [
+    "src",
+    "index.d.ts",
+    "vectors",
+    "SPEC.md"
+  ],
+  "scripts": {
+    "test": "node --test test/",
+    "vectors": "node scripts/vectors.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@noble/post-quantum": "0.7.1"
+  },
+  "devDependencies": {
+    "@qorechain/sdk": "^0.14.0"
+  }
+}
